@@ -22,11 +22,6 @@ NUM_CLASSES = 3
 RESULTS_EXCEL_PATH = "results.xlsx"
 
 # Path to your input CSV data
-CSV_DATA_PATH = "data/text_data.csv"  # Adjust this path as needed
-
-# src/config.py
-
-# Path to your CSV data file (adjust the path if you're using the 'data' folder)
-CSV_DATA_PATH = "data/text_data.csv"
+CSV_DATA_PATH = "data/text_data.csv" 
 
 
