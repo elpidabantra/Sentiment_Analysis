@@ -1,32 +1,60 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8, 3.9, 3.10]
-
+    
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Dependencies
+          python-version: 3.10
+      
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Run Tests
+          pip install pytest flake8 black
+      
+      - name: Lint with flake8
         run: |
-          pytest --maxfail=1 --disable-warnings -q
+          flake8 src tests --max-line-length=120
+      
+      - name: Code formatting check with Black
+        run: |
+          black --check src tests
+      
+      - name: Run automated tests
+        run: |
+          pytest tests/
+  
+  docker-build-and-deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker Image
+        run: |
+          docker build -t sentiment-analysis-app:${{ github.sha }} .
+      
+      - name: Push Docker Image to Registry
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+        run: |
+          echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+          docker tag sentiment-analysis-app:${{ github.sha }} $DOCKERHUB_USERNAME/sentiment-analysis-app:${{ github.sha }}
+          docker push $DOCKERHUB_USERNAME/sentiment-analysis-app:${{ github.sha }}
+
+      # Add deployment steps if deploying automatically to a cloud provider.
+
